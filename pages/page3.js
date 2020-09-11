@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { dispatchRouteEvent } from "../src/function";
+import { replaceTo } from "../src/Router";
 
 Page3.initialPageProps = {
   page: "/page3",
@@ -8,16 +8,14 @@ Page3.initialPageProps = {
 export default function Page3() {
   const router = useRouter();
   return (
-    <div className="layout" style={{ background: "purple" }}>
-      여기는 page3입니다.
+    <div
+      className="layout"
+      style={{ background: "purple", display: "flex", flexDirection: "column" }}
+    >
+      <div style={{ fontSize: "100px", textAlign: "center" }}>3</div>
       <br />
-      <button
-        onClick={() => {
-          dispatchRouteEvent({ action: "REPLACE", url: "/" });
-          router.replace("/");
-        }}
-      >
-        go page1 (replace)
+      <button onClick={() => replaceTo("/")} style={{ margin: "20px" }}>
+        <div style={{ margin: "20px" }}>go page1 (replace)</div>
       </button>
     </div>
   );

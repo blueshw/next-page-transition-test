@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { dispatchRouteEvent } from "../src/function";
+import { routeTo } from "../src/Router";
 
 Index.initialPageProps = {
   page: "/",
@@ -12,16 +12,14 @@ Index.getInitialProps = function () {
 export default function Index(props) {
   const router = useRouter();
   return (
-    <div className="layout" style={{ background: "red" }}>
-      여기는 page1입니다.
+    <div
+      className="layout"
+      style={{ background: "red", display: "flex", flexDirection: "column" }}
+    >
+      <div style={{ fontSize: "100px", textAlign: "center" }}>1</div>
       <br />
-      <button
-        onClick={() => {
-          dispatchRouteEvent({ action: "PUSH", url: "/page2" });
-          router.push("/page2");
-        }}
-      >
-        go page2
+      <button onClick={() => routeTo("/page2")} style={{ margin: "20px" }}>
+        <div style={{ margin: "20px" }}>go page2</div>
       </button>
     </div>
   );

@@ -4,9 +4,11 @@ import withRedux from "next-redux-wrapper";
 import { initStore } from "../src/store";
 import "../src/style.css";
 import PageStack from "../src/PageStack";
+import { processBeforePopState } from "../src/Router";
 
 class CustomApp extends App {
   static async getInitialProps({ Component, ctx }) {
+    console.log("Component", Component);
     const props = {
       pageProps: {},
     };
@@ -21,12 +23,7 @@ class CustomApp extends App {
 
   componentDidMount() {
     const { router } = this.props;
-    router.beforePopState(() => {
-      const event = new CustomEvent("onHistoryChange", {
-        detail: { action: "POP" },
-      });
-      window.dispatchEvent(event);
-    });
+    router.beforePopState(processBeforePopState);
   }
 
   render() {

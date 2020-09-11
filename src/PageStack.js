@@ -5,10 +5,13 @@ import Page from "./Page";
 
 export default function PageStack(props) {
   const { component, componentProps } = props;
+  console.log("props", props);
   // 각 Page의 페이지 전환 핸들러(ex. componentDidHide)를 담아두기 위한 변수
   const pageHandlerStackRef = useRef([]);
   // 실제 컴포넌트를 쌓아두는 stack 변수
   const [pageStack, setPageStack] = useState([]);
+  const pageStackInMemory = useRef([]);
+  const currentPosition = useRef(-1);
   const router = useRouter();
   // 페이지 전환 정보 (action, url, direction)
   const pageTransition = useRef();
@@ -18,6 +21,7 @@ export default function PageStack(props) {
   // 최초 page 추가
   useEffect(() => {
     setPageStack([getPage(router.route, component)]);
+    currentPosition.current = 0;
   }, []);
 
   useEffect(() => {
@@ -25,8 +29,18 @@ export default function PageStack(props) {
       // POP을 여기서 하는 이유는 history.back이 호출되었을 때, component는 바뀌지 않기 때문에 기다릴 필요가 없다.
       if (e.detail.action === "POP") {
         const newPageStack = [...pageStack];
+        console.log("newPageStack", newPageStack);
         newPageStack.pop();
         setPageStack(newPageStack);
+        currentPosition.current = currentPosition.current - 1;
+      } else if (e.detail.action === "FORWARD") {
+        // index만 바꿔야겠는뎀.....흠흠...
+        const nextPosition = currentPosition.current + 1;
+        const nextPage = pageStackInMemory.current[nextPosition];
+        const newPageStack = [...pageStack];
+        newPageStack.push(nextPage);
+        setPageStack(newPageStack);
+        currentPosition.current = nextPosition;
       } else {
         pageTransition.current = e.detail;
       }
@@ -44,6 +58,7 @@ export default function PageStack(props) {
       switch (action) {
         case "PUSH":
           newPageStack.push(getPage(url, component, direction));
+          currentPosition.current = currentPosition.current + 1;
           break;
         // TODO: POP이 나눠져 있는게 이상하다.
         // case "POP":
@@ -53,26 +68,21 @@ export default function PageStack(props) {
           // TODO: page3에서 index 페이지로 replace 요청하는데, page2로 이동한다. 이유를 찾아보자.
           // replace에도 페이지 전환 애니메이션이 필요한지 모르겠다.
           // 만약 필요하다면, push하고 페이지 전환이 완료된 후 이전 페이지를 제거해야한다.
-          newPageStack.pop();
-          newPageStack.push(getPage(url, component, direction));
+          const newPage = getPage(url, component);
+          newPageStack[newPageStack.length - 1] = newPage;
           break;
         default:
           break;
       }
+      console.log("newPageStack", newPageStack);
       setPageStack(newPageStack);
+      pageStackInMemory.current = newPageStack;
       pageTransition.current = null;
     }
   }, [component]);
 
   const getPage = (route, pageComponent, direction = "horizontal") => {
     direction = pageStack.length === 0 ? "" : direction;
-    const page = () => (
-      <Page
-        ref={currentPageRef}
-        pageComponent={pageComponent}
-        componentProps={componentProps}
-      />
-    );
     return (
       <CSSTransition
         key={route}
@@ -83,7 +93,11 @@ export default function PageStack(props) {
         onEnter={onEnter}
         onExit={onExit}
       >
-        {page}
+        <Page
+          ref={currentPageRef}
+          pageComponent={pageComponent}
+          componentProps={componentProps}
+        />
       </CSSTransition>
     );
   };
