@@ -5,7 +5,6 @@ import Page from "./Page";
 
 export default function PageStack(props) {
   const { component, componentProps } = props;
-  console.log("props", props);
   // 각 Page의 페이지 전환 핸들러(ex. componentDidHide)를 담아두기 위한 변수
   const pageHandlerStackRef = useRef([]);
   // 실제 컴포넌트를 쌓아두는 stack 변수
@@ -60,10 +59,6 @@ export default function PageStack(props) {
           newPageStack.push(getPage(url, component, direction));
           currentPosition.current = currentPosition.current + 1;
           break;
-        // TODO: POP이 나눠져 있는게 이상하다.
-        // case "POP":
-        //   newPageStack.pop();
-        //   break;
         case "REPLACE":
           // TODO: page3에서 index 페이지로 replace 요청하는데, page2로 이동한다. 이유를 찾아보자.
           // replace에도 페이지 전환 애니메이션이 필요한지 모르겠다.
@@ -74,7 +69,6 @@ export default function PageStack(props) {
         default:
           break;
       }
-      console.log("newPageStack", newPageStack);
       setPageStack(newPageStack);
       pageStackInMemory.current = newPageStack;
       pageTransition.current = null;
@@ -87,7 +81,7 @@ export default function PageStack(props) {
       <CSSTransition
         key={route}
         classNames={direction}
-        timeout={1000}
+        timeout={400}
         onEntered={onEntered}
         onExited={() => onExited(component)}
         onEnter={onEnter}
@@ -102,37 +96,46 @@ export default function PageStack(props) {
     );
   };
 
+  // push
   const onEnter = () => {
     const pageHandlerStack = pageHandlerStackRef.current;
-    const prevPage = pageHandlerStack[pageHandlerStack.length - 1];
-    if (prevPage && prevPage.componentHide) {
-      prevPage.componentHide(true);
+    const prevPageHandler = pageHandlerStack[pageHandlerStack.length - 1];
+    if (prevPageHandler && prevPageHandler.componentHide) {
+      prevPageHandler.componentHide(true);
     }
   };
-  const onExit = () => {
-    const pageHandlerStack = pageHandlerStackRef.current;
-    const prevPage = pageHandlerStack[pageHandlerStack.length - 2];
-    if (prevPage && prevPage.componentEnter) {
-      prevPage.componentEnter(true);
-    }
-  };
-
   const onEntered = () => {
     const pageHandlerStack = pageHandlerStackRef.current;
     pageHandlerStack.push(currentPageRef.current);
-    currentPageRef.current = null;
-    const prevPage = pageHandlerStack[pageHandlerStack.length - 2];
-    if (prevPage && prevPage.componentDidHide) {
-      prevPage.componentDidHide(true);
+    const prevPageHandler = pageHandlerStack[pageHandlerStack.length - 2];
+    if (prevPageHandler && prevPageHandler.componentDidHide) {
+      prevPageHandler.componentDidHide(true);
     }
+    const currentPageHandler = pageHandlerStack[pageHandlerStack.length - 1];
+    if (currentPageHandler && currentPageHandler.componentDidHide) {
+      currentPageHandler.componentDidEnter(false);
+    }
+    currentPageRef.current = null;
   };
 
+  // pop (back)
+  const onExit = () => {
+    const pageHandlerStack = pageHandlerStackRef.current;
+    const prevPageHandler = pageHandlerStack[pageHandlerStack.length - 2];
+    if (prevPageHandler && prevPageHandler.componentEnter) {
+      prevPageHandler.componentEnter(true);
+    }
+  };
   const onExited = component => {
     const pageHandlerStack = pageHandlerStackRef.current;
+    const currentComponent = pageHandlerStack[pageHandlerStack.length - 1];
+    if (currentComponent && currentComponent.componentDidHide) {
+      currentComponent.componentDidHide(false);
+    }
     pageHandlerStack.splice(pageHandlerStack.indexOf(component), 1);
-    const topComponent = pageHandlerStack[pageHandlerStack.length - 1];
-    if (topComponent && topComponent.componentDidEnter) {
-      topComponent.componentDidEnter(true);
+    const prevComponent = pageHandlerStack[pageHandlerStack.length - 1];
+    if (prevComponent && prevComponent.componentDidEnter) {
+      prevComponent.componentDidEnter(true);
     }
   };
 

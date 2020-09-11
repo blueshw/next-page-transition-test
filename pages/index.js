@@ -1,5 +1,7 @@
-import { useRouter } from "next/router";
 import { routeTo } from "../src/Router";
+import { useEffect } from "react";
+import usePageEntered from "../src/hook/usePageEntered";
+import usePageExited from "../src/hook/usePageExited";
 
 Index.initialPageProps = {
   page: "/",
@@ -10,7 +12,21 @@ Index.getInitialProps = function () {
 };
 
 export default function Index(props) {
-  const router = useRouter();
+  // console.log("entered", props.entered);
+  // console.log("exited", props.exited);
+  useEffect(() => {
+    console.log("mount index page");
+    return () => {
+      console.log("out index page");
+    };
+  }, []);
+  usePageEntered(() => {
+    console.log("entered!!!!!!!!!!!!!!!!!!!");
+  }, props);
+  usePageExited(() => {
+    console.log("!!!!!!!!!!!!!!!!!!!exited");
+  }, props);
+
   return (
     <div
       className="layout"
