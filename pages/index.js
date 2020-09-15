@@ -12,8 +12,6 @@ Index.getInitialProps = function () {
 };
 
 export default function Index(props) {
-  // console.log("entered", props.entered);
-  // console.log("exited", props.exited);
   useEffect(() => {
     console.log("mount index page");
     return () => {

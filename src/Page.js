@@ -12,22 +12,24 @@ function Page(props, ref) {
   const componentEnter = isPrevious => {
     if (isPrevious) {
       const elem = maskRef.current;
-      elem.classList.remove("on");
-      elem.classList.add("off");
+      if (elem) {
+        elem.classList.remove("on");
+        elem.classList.add("off");
+      }
     } else {
     }
   };
   const componentHide = isPrevious => {
     if (isPrevious) {
       const elem = maskRef.current;
-      elem.classList.add("on");
+      elem && elem.classList.add("on");
     } else {
     }
   };
   const componentDidEnter = isPrevious => {
     if (isPrevious) {
       const elem = maskRef.current;
-      elem.classList.remove("off");
+      elem && elem.classList.remove("off");
     } else {
     }
     setEntered(true);

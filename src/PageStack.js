@@ -28,12 +28,10 @@ export default function PageStack(props) {
       // POP을 여기서 하는 이유는 history.back이 호출되었을 때, component는 바뀌지 않기 때문에 기다릴 필요가 없다.
       if (e.detail.action === "POP") {
         const newPageStack = [...pageStack];
-        console.log("newPageStack", newPageStack);
         newPageStack.pop();
         setPageStack(newPageStack);
         currentPosition.current = currentPosition.current - 1;
       } else if (e.detail.action === "FORWARD") {
-        // index만 바꿔야겠는뎀.....흠흠...
         const nextPosition = currentPosition.current + 1;
         const nextPage = pageStackInMemory.current[nextPosition];
         const newPageStack = [...pageStack];
@@ -51,6 +49,7 @@ export default function PageStack(props) {
   }, [pageStack]);
 
   useEffect(() => {
+    console.log("pageTransition.current", pageTransition.current);
     if (pageTransition.current) {
       const { action, url, direction } = pageTransition.current;
       const newPageStack = [...pageStack];
@@ -77,9 +76,10 @@ export default function PageStack(props) {
 
   const getPage = (route, pageComponent, direction = "horizontal") => {
     direction = pageStack.length === 0 ? "" : direction;
+    const index = pageStack.length - 1;
     return (
       <CSSTransition
-        key={route}
+        key={`${route}_${index}`}
         classNames={direction}
         timeout={400}
         onEntered={onEntered}
@@ -96,7 +96,6 @@ export default function PageStack(props) {
     );
   };
 
-  // push
   const onEnter = () => {
     const pageHandlerStack = pageHandlerStackRef.current;
     const prevPageHandler = pageHandlerStack[pageHandlerStack.length - 1];
@@ -118,7 +117,6 @@ export default function PageStack(props) {
     currentPageRef.current = null;
   };
 
-  // pop (back)
   const onExit = () => {
     const pageHandlerStack = pageHandlerStackRef.current;
     const prevPageHandler = pageHandlerStack[pageHandlerStack.length - 2];
