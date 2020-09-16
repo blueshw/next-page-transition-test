@@ -5,21 +5,25 @@ import React, {
   useState,
   Ref,
 } from "react";
-import { NextComponent } from "./type";
+import useTypedSelector from "./hook/useTypedSelector";
+import { IPageHandlerItem, NextComponent } from "./type";
 
 interface IProps {
   pageComponent: NextComponent;
   componentProps: any; // TODO: type
   route: string;
+  pageIndex: number;
 }
 
 function Page(
-  { pageComponent, componentProps, route }: IProps,
-  ref: Ref<IPageHanderRef>,
+  { pageComponent, componentProps, route, pageIndex }: IProps,
+  ref: Ref<IPageHandlerItem>
 ) {
   const maskRef = useRef<HTMLDivElement>(null);
-  const [entered, setEntered] = useState(false);
-  const [exited, setExited] = useState(false);
+  const [activePosition, removePosition] = useTypedSelector(state => [
+    state.activePosition,
+    state.removePosition,
+  ]);
   const componentEnter = (isPrevious: boolean) => {
     if (isPrevious) {
       const elem = maskRef.current;
@@ -42,17 +46,13 @@ function Page(
       const elem = maskRef.current;
       elem && elem.classList.remove("off");
     }
-    setEntered(true);
-    setExited(false);
   };
   const componentDidHide = (isPrevious: boolean) => {
     if (isPrevious) {
     }
-    setEntered(false);
-    setExited(true);
   };
   const getPageName = () => {
-    return props.componentProps.title;
+    return componentProps.title;
   };
 
   useImperativeHandle(ref, () => ({
@@ -61,24 +61,20 @@ function Page(
     componentDidEnter,
     componentDidHide,
     getPageName,
+    pageIndex,
   }));
 
+  if (pageIndex !== activePosition && pageIndex !== removePosition) {
+    return null;
+  }
+
   const Component = pageComponent;
-  const props = { ...componentProps, entered, exited };
   return (
     <>
-      <Component {...props} key={route} />
+      <Component {...componentProps} key={route} />
       <div className="mask" ref={maskRef} />
     </>
   );
 }
 
 export default forwardRef(Page);
-
-export interface IPageHanderRef {
-  componentEnter: (isPrevious: boolean) => void;
-  componentHide: (isPrevious: boolean) => void;
-  componentDidEnter: (isPrevious: boolean) => void;
-  componentDidHide: (isPrevious: boolean) => void;
-  getPageName: () => string;
-}

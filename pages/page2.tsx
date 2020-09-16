@@ -1,6 +1,4 @@
 import { routeTo } from "../src/Router";
-import usePageEntered from "../src/hook/usePageEntered";
-import usePageExited from "../src/hook/usePageExited";
 import { IComponentInOut } from "../src/type";
 
 interface IProps extends IComponentInOut {}
@@ -14,12 +12,6 @@ Page2.getInitialProps = function () {
 };
 
 export default function Page2(props: IProps) {
-  usePageEntered(() => {
-    console.log("====== entered page 2 ======");
-  }, props);
-  usePageExited(() => {
-    console.log("====== exited page 2 ======");
-  }, props);
   return (
     <div
       className="layout"

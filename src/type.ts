@@ -16,8 +16,13 @@ export interface IComponentInOut {
 export interface KStore extends Store<IReduxState> {}
 
 export interface IPageStackItem {
-  renderKey: string;
   page: React.ReactElement;
 }
-
-export type IPageStack = IPageStackItem[];
+export interface IPageHandlerItem {
+  componentEnter: (isPrevious: boolean) => void;
+  componentHide: (isPrevious: boolean) => void;
+  componentDidEnter: (isPrevious: boolean) => void;
+  componentDidHide: (isPrevious: boolean) => void;
+  getPageName: () => string;
+  pageIndex: number;
+}

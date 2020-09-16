@@ -1,7 +1,6 @@
 import { routeTo } from "../src/Router";
-import usePageEntered from "../src/hook/usePageEntered";
-import usePageExited from "../src/hook/usePageExited";
 import { IComponentInOut } from "../src/type";
+import { useEffect } from "react";
 
 interface IProps extends IComponentInOut {}
 
@@ -14,17 +13,12 @@ Index.getInitialProps = function () {
 };
 
 export default function Index(props: IProps) {
-  // useEffect(() => {
-  //   return () => {
-  //     console.log("out index page");
-  //   };
-  // }, []);
-  usePageEntered(() => {
-    console.log("====== entered page 1 ======");
-  }, props);
-  usePageExited(() => {
-    console.log("====== exited page 1 ======");
-  }, props);
+  useEffect(() => {
+    console.log("entered index page");
+    return () => {
+      console.log("exited index page");
+    };
+  }, []);
 
   return (
     <div

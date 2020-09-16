@@ -1,8 +1,8 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
 import { Router } from "next/router";
-import Page, { IPageHanderRef } from "./Page";
-import { NextComponent, IPageAppContext } from "./type";
+import Page from "./Page";
+import { NextComponent, IPageAppContext, IPageHandlerItem } from "./type";
 import { IRouterInfo, RouteAction } from "./Router";
 import useTypedSelector from "./hook/useTypedSelector";
 import { useDispatch } from "react-redux";
@@ -17,43 +17,44 @@ interface IProps {
 
 export default function PageStack({
   router,
-  component,
+  component: pageComponent,
   componentProps,
 }: IProps) {
   const dispatch = useDispatch();
-  // 각 Page의 페이지 전환 핸들러(ex. componentDidHide)를 담아두기 위한 변수
-  const pageHandlerStackRef = useRef<IPageHanderRef[]>([]);
   // 실제 컴포넌트를 쌓아두는 stack 변수
-  const pageStack = useTypedSelector(state => state.stack);
+  const [
+    pageStack,
+    pageHandlerStack,
+    activePosition,
+  ] = useTypedSelector(state => [
+    state.stack,
+    state.handlerStack,
+    state.activePosition,
+  ]);
 
-  // 브라우저 back, forward할때 필요
-  // const pageStackInMemory = useRef<React.ReactElement[]>([]);
-  const currentPosition = useRef(-1);
+  // 각 Page의 페이지 전환 핸들러(ex. componentDidHide)를 담아두기 위한 변수
+  // const pageHandlerStackRef = useRef<IPageHanderRef[]>([]);
   // 페이지 전환 정보 (action, url, direction)
   const pageTransition = useRef<IRouterInfo>();
   // 현재 추가하려는 페이지 handler
-  const pageHandler = useRef<IPageHanderRef>(null);
+  const pageHandler = useRef<IPageHandlerItem>(null);
 
   // 최초 page 추가
   useEffect(() => {
-    const page = getPage({ route: router.route, pageComponent: component });
-    dispatch(actions.addPageStack({ renderKey: "", page }));
-    currentPosition.current = 0;
+    if (pageStack.length === 0) {
+      const page = getPage({ route: router.route, pageComponent });
+      dispatch(actions.addPage({ page }));
+    }
   }, []);
 
   useEffect(() => {
     const handleHistoryChange = (e: any) => {
       // TODO: type
       // POP을 여기서 하는 이유는 history.back이 호출되었을 때, component는 바뀌지 않기 때문에 기다릴 필요가 없다.
-      if (e.detail.action === RouteAction.Pop) {
-        const newPageStack = [...pageStack];
-        newPageStack.pop();
-        dispatch(actions.removePageStack());
-        currentPosition.current = currentPosition.current - 1;
-      } else if (e.detail.action === RouteAction.BrowserBack) {
-        --currentPosition.current;
+      if (e.detail.action === RouteAction.Back) {
+        dispatch(actions.changeActivePosition({ isForward: false }));
       } else if (e.detail.action === RouteAction.BrowserForward) {
-        ++currentPosition.current;
+        dispatch(actions.changeActivePosition({ isForward: true }));
       } else {
         pageTransition.current = e.detail;
       }
@@ -72,24 +73,22 @@ export default function PageStack({
           if (url) {
             const page = getPage({
               route: url,
-              pageComponent: component,
+              pageComponent,
               direction,
             });
-            dispatch(actions.addPageStack({ renderKey: "", page }));
-            currentPosition.current = currentPosition.current + 1;
+            dispatch(actions.addPage({ page }));
           }
           break;
         case "REPLACE":
-          // TODO: page3에서 index 페이지로 replace 요청하는데, page2로 이동한다. 이유를 찾아보자.
           // replace에도 페이지 전환 애니메이션이 필요한지 모르겠다.
           // 만약 필요하다면, push하고 페이지 전환이 완료된 후 이전 페이지를 제거해야한다.
           if (url) {
             const page = getPage({
               route: url,
-              pageComponent: component,
+              pageComponent,
               isReplace: true,
             });
-            dispatch(actions.changePageStack({ renderKey: "", page }));
+            dispatch(actions.changePage({ page }));
           }
           break;
         default:
@@ -97,7 +96,7 @@ export default function PageStack({
       }
       pageTransition.current = undefined;
     }
-  }, [component]);
+  }, [pageComponent]);
 
   const getPage = ({
     route,
@@ -111,10 +110,10 @@ export default function PageStack({
     isReplace?: boolean;
   }) => {
     direction = pageStack.length === 0 ? "" : direction;
-    const index = pageStack.length - 1;
+    const index = activePosition + 1;
     return (
       <CSSTransition
-        key={`${route}_${index}`}
+        key={`${index}_${route}`}
         classNames={direction}
         timeout={400}
         onEntered={() => onEntered()}
@@ -127,52 +126,52 @@ export default function PageStack({
           pageComponent={pageComponent}
           componentProps={componentProps}
           route={route}
+          pageIndex={index}
         />
       </CSSTransition>
     );
   };
 
   const onEnter = () => {
-    const pageHandlerStack = pageHandlerStackRef.current;
     const prevPageHandler = pageHandlerStack[pageHandlerStack.length - 1];
     if (prevPageHandler && prevPageHandler.componentHide) {
       prevPageHandler.componentHide(true);
     }
   };
   const onExit = () => {
-    const pageHandlerStack = pageHandlerStackRef.current;
-    const prevPageHandler = pageHandlerStack[pageHandlerStack.length - 2];
-    if (prevPageHandler && prevPageHandler.componentEnter) {
-      prevPageHandler.componentEnter(true);
+    const prevPage = pageHandlerStack[pageHandlerStack.length - 2];
+    if (prevPage && prevPage.componentEnter) {
+      prevPage.componentEnter(true);
     }
   };
 
   const onEntered = () => {
-    const pageHandlerStack = pageHandlerStackRef.current;
-    pageHandler.current && pageHandlerStack.push(pageHandler.current);
-    const prevPageHandler = pageHandlerStack[pageHandlerStack.length - 2];
-    if (prevPageHandler && prevPageHandler.componentDidHide) {
-      prevPageHandler.componentDidHide(true);
+    pageHandler.current &&
+      dispatch(actions.addPageHandler(pageHandler.current));
+    const prevPage = pageHandlerStack[activePosition - 1];
+    if (prevPage) {
+      prevPage.componentDidHide(true);
     }
-    const currentPageHandler = pageHandlerStack[pageHandlerStack.length - 1];
-    if (currentPageHandler && currentPageHandler.componentDidHide) {
-      currentPageHandler.componentDidEnter(false);
+    const currentPage = pageHandlerStack[activePosition];
+    if (currentPage) {
+      currentPage.componentDidEnter(false);
     }
   };
   const onExited = () => {
-    const pageHandlerStack = pageHandlerStackRef.current;
-    const currentComponent = pageHandlerStack[pageHandlerStack.length - 1];
-    if (currentComponent && currentComponent.componentDidHide) {
-      currentComponent.componentDidHide(false);
+    const currentPage = pageHandlerStack[activePosition + 1];
+    if (currentPage) {
+      currentPage.componentDidHide(false);
     }
-    const prevComponent = pageHandlerStack[pageHandlerStack.length - 2];
-    if (prevComponent && prevComponent.componentDidEnter) {
-      prevComponent.componentDidEnter(true);
+    const prevPage = pageHandlerStack[activePosition];
+    if (prevPage) {
+      prevPage.componentDidEnter(true);
+      dispatch(actions.changeRemovePosition({ position: activePosition }));
     }
   };
 
+  // TODO: 렌더링할때마다 계산하지 않도록 처리하자
   const pages = pageStack
-    .filter((_, index) => index <= currentPosition.current)
+    .filter((_, index) => index <= activePosition)
     .map(item => item.page);
 
   return <TransitionGroup>{pages}</TransitionGroup>;

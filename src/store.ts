@@ -1,13 +1,19 @@
 import { createStore, compose } from "redux";
-import { KStore, IPageStack, IPageStackItem } from "./type";
+import { KStore, IPageHandlerItem, IPageStackItem } from "./type";
 export interface IReduxState {
-  stack: IPageStack;
+  stack: IPageStackItem[];
+  handlerStack: IPageHandlerItem[];
+  removePosition: number;
+  activePosition: number;
 }
 
 export const IS_CLIENT = typeof window !== "undefined";
 
 const INITIAL_STATE: IReduxState = {
   stack: [],
+  handlerStack: [],
+  removePosition: -1,
+  activePosition: -1,
 };
 export const initStore = (initialState = INITIAL_STATE): KStore => {
   if (IS_CLIENT && kStore) {
@@ -22,22 +28,37 @@ export const initStore = (initialState = INITIAL_STATE): KStore => {
 let kStore: KStore;
 
 const ActionType = {
-  AddPageStack: "AddPageStack",
-  ChangePageStack: "ChangePageStack",
-  RemovePageStack: "RemovePageStack",
+  AddPage: "AddPage",
+  ChangePage: "ChangePage",
+  // RemovePage: "RemovePage",
+  ChangeActivePosition: "ChangeActivePosition",
+  ChangeRemovePosition: "ChangeRemovePosition",
+  AddPageHandler: "AddPageHandler",
 };
 
 export const actions = {
-  addPageStack: (item: IPageStackItem) => ({
-    type: ActionType.AddPageStack,
+  addPage: (item: IPageStackItem) => ({
+    type: ActionType.AddPage,
     payload: { item },
   }),
-  changePageStack: (item: IPageStackItem) => ({
-    type: ActionType.ChangePageStack,
+  changePage: (item: IPageStackItem) => ({
+    type: ActionType.ChangePage,
     payload: { item },
   }),
-  removePageStack: () => ({
-    type: ActionType.RemovePageStack,
+  // removePage: () => ({
+  //   type: ActionType.RemovePage,
+  // }),
+  changeActivePosition: ({ isForward }: { isForward: boolean }) => ({
+    type: ActionType.ChangeActivePosition,
+    payload: { isForward },
+  }),
+  changeRemovePosition: ({ position }: { position: number }) => ({
+    type: ActionType.ChangeRemovePosition,
+    payload: { position },
+  }),
+  addPageHandler: (item: IPageHandlerItem) => ({
+    type: ActionType.AddPageHandler,
+    payload: { item },
   }),
 };
 
@@ -51,27 +72,58 @@ function reducer(
   action: ITypedAction<string, any> // TODO: type
 ) {
   switch (action.type) {
-    case ActionType.AddPageStack:
+    case ActionType.AddPage:
+      // activeStack 이후의 page는 잘라낸다.
+      const newStack = state.stack.slice(0, state.activePosition + 1);
       return {
-        stack: [...state.stack, action.payload.item],
+        ...state,
+        stack: [...newStack, action.payload.item],
+        activePosition: state.activePosition + 1,
       };
-    case ActionType.ChangePageStack:
+    case ActionType.ChangePage:
       if (state.stack.length > 0) {
         const newStack = [...state.stack];
         newStack.pop();
         return {
+          ...state,
           stack: [...newStack, action.payload.item],
         };
       }
       return state;
-    case ActionType.RemovePageStack:
-      if (state.stack.length > 0) {
-        const newStack = [...state.stack];
-        newStack.pop();
+    case ActionType.ChangeActivePosition:
+      const { isForward } = action.payload;
+      const lastPosition = state.stack.length - 1;
+      const currentActivePosition = state.activePosition;
+      if (
+        (isForward && currentActivePosition === lastPosition) ||
+        (!isForward && lastPosition === 0)
+      ) {
+        return state;
+      } else {
         return {
-          stack: newStack,
+          ...state,
+          activePosition: isForward
+            ? currentActivePosition + 1
+            : currentActivePosition - 1,
         };
       }
+    case ActionType.ChangeRemovePosition:
+      const { position } = action.payload;
+      return {
+        ...state,
+        removePosition: position,
+      };
+    case ActionType.AddPageHandler:
+      // activeStack 이후의 page는 잘라낸다.
+      const newHandlerStack = state.handlerStack.slice(
+        0,
+        state.removePosition + 1
+      );
+      return {
+        ...state,
+        handlerStack: [...newHandlerStack, action.payload.item],
+        removePosition: state.removePosition + 1,
+      };
     default:
       return state;
   }

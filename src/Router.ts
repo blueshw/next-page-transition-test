@@ -14,7 +14,6 @@ export function replaceTo(url: string) {
 }
 
 export function routeBack() {
-  --currentHistoryPosition;
   router.back();
 }
 
@@ -27,7 +26,7 @@ export function processBeforePopState({
   if (currentHistoryPosition > pos) {
     // back
     --currentHistoryPosition;
-    dispatchRouteEvent({ action: RouteAction.BrowserBack });
+    dispatchRouteEvent({ action: RouteAction.Back });
   } else if (currentHistoryPosition < pos) {
     // forward
     ++currentHistoryPosition;
@@ -52,7 +51,6 @@ export interface IRouterInfo {
 export enum RouteAction {
   Push = "PUSH",
   Replace = "REPLACE",
-  Pop = "POP",
   BrowserForward = "FORWARD",
-  BrowserBack = "BACK",
+  Back = "BACK",
 }
