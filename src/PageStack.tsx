@@ -133,13 +133,13 @@ export default function PageStack({
   };
 
   const onEnter = () => {
-    const prevPageHandler = pageHandlerStack[pageHandlerStack.length - 1];
+    const prevPageHandler = pageHandlerStack[activePosition];
     if (prevPageHandler && prevPageHandler.componentHide) {
       prevPageHandler.componentHide(true);
     }
   };
   const onExit = () => {
-    const prevPage = pageHandlerStack[pageHandlerStack.length - 2];
+    const prevPage = pageHandlerStack[activePosition];
     if (prevPage && prevPage.componentEnter) {
       prevPage.componentEnter(true);
     }

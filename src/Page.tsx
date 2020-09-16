@@ -27,18 +27,13 @@ function Page(
   const componentEnter = (isPrevious: boolean) => {
     if (isPrevious) {
       const elem = maskRef.current;
-      if (elem) {
-        elem.classList.remove("on");
-        elem.classList.add("off");
-      }
-    } else {
+      elem && elem.classList.add("off");
     }
   };
   const componentHide = (isPrevious: boolean) => {
     if (isPrevious) {
       const elem = maskRef.current;
       elem && elem.classList.add("on");
-    } else {
     }
   };
   const componentDidEnter = (isPrevious: boolean) => {
@@ -49,6 +44,8 @@ function Page(
   };
   const componentDidHide = (isPrevious: boolean) => {
     if (isPrevious) {
+      const elem = maskRef.current;
+      elem && elem.classList.remove("on");
     }
   };
   const getPageName = () => {
@@ -68,11 +65,13 @@ function Page(
     return null;
   }
 
+  const maskClass = pageIndex < removePosition ? "mask-back" : "mask";
+
   const Component = pageComponent;
   return (
     <>
       <Component {...componentProps} key={route} />
-      <div className="mask" ref={maskRef} />
+      <div className={maskClass} ref={maskRef} />
     </>
   );
 }
