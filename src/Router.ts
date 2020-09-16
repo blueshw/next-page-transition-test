@@ -27,12 +27,12 @@ export function processBeforePopState({
   if (currentHistoryPosition > pos) {
     // back
     --currentHistoryPosition;
-    dispatchRouteEvent({ action: RouteAction.Pop });
+    dispatchRouteEvent({ action: RouteAction.BrowserBack });
   } else if (currentHistoryPosition < pos) {
     // forward
     ++currentHistoryPosition;
     // index만 변경하는 action
-    dispatchRouteEvent({ action: RouteAction.Forward });
+    dispatchRouteEvent({ action: RouteAction.BrowserForward });
   }
   return true;
 }
@@ -52,6 +52,7 @@ export interface IRouterInfo {
 export enum RouteAction {
   Push = "PUSH",
   Replace = "REPLACE",
-  Forward = "FORWARD",
   Pop = "POP",
+  BrowserForward = "FORWARD",
+  BrowserBack = "BACK",
 }

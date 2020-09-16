@@ -3,7 +3,10 @@ import { TransitionGroup, CSSTransition } from "react-transition-group";
 import { Router } from "next/router";
 import Page, { IPageHanderRef } from "./Page";
 import { NextComponent, IPageAppContext } from "./type";
-import { IRouterInfo } from "./Router";
+import { IRouterInfo, RouteAction } from "./Router";
+import useTypedSelector from "./hook/useTypedSelector";
+import { useDispatch } from "react-redux";
+import { actions } from "./store";
 
 interface IProps {
   component: NextComponent;
@@ -17,21 +20,24 @@ export default function PageStack({
   component,
   componentProps,
 }: IProps) {
+  const dispatch = useDispatch();
   // 각 Page의 페이지 전환 핸들러(ex. componentDidHide)를 담아두기 위한 변수
   const pageHandlerStackRef = useRef<IPageHanderRef[]>([]);
   // 실제 컴포넌트를 쌓아두는 stack 변수
-  const [pageStack, setPageStack] = useState<React.ReactElement[]>([]);
+  const pageStack = useTypedSelector(state => state.stack);
+
   // 브라우저 back, forward할때 필요
-  const pageStackInMemory = useRef<React.ReactElement[]>([]);
+  // const pageStackInMemory = useRef<React.ReactElement[]>([]);
   const currentPosition = useRef(-1);
   // 페이지 전환 정보 (action, url, direction)
   const pageTransition = useRef<IRouterInfo>();
-  // 현재 추가하려는 페이지 정보
+  // 현재 추가하려는 페이지 handler
   const pageHandler = useRef<IPageHanderRef>(null);
 
   // 최초 page 추가
   useEffect(() => {
-    setPageStack([getPage({ route: router.route, pageComponent: component })]);
+    const page = getPage({ route: router.route, pageComponent: component });
+    dispatch(actions.addPageStack({ renderKey: "", page }));
     currentPosition.current = 0;
   }, []);
 
@@ -39,18 +45,15 @@ export default function PageStack({
     const handleHistoryChange = (e: any) => {
       // TODO: type
       // POP을 여기서 하는 이유는 history.back이 호출되었을 때, component는 바뀌지 않기 때문에 기다릴 필요가 없다.
-      if (e.detail.action === "POP") {
+      if (e.detail.action === RouteAction.Pop) {
         const newPageStack = [...pageStack];
         newPageStack.pop();
-        setPageStack(newPageStack);
+        dispatch(actions.removePageStack());
         currentPosition.current = currentPosition.current - 1;
-      } else if (e.detail.action === "FORWARD") {
-        const nextPosition = currentPosition.current + 1;
-        const nextPage = pageStackInMemory.current[nextPosition];
-        const newPageStack = [...pageStack];
-        newPageStack.push(nextPage);
-        setPageStack(newPageStack);
-        currentPosition.current = nextPosition;
+      } else if (e.detail.action === RouteAction.BrowserBack) {
+        --currentPosition.current;
+      } else if (e.detail.action === RouteAction.BrowserForward) {
+        ++currentPosition.current;
       } else {
         pageTransition.current = e.detail;
       }
@@ -64,33 +67,34 @@ export default function PageStack({
   useEffect(() => {
     if (pageTransition.current) {
       const { action, url, direction } = pageTransition.current;
-      const newPageStack = [...pageStack];
       switch (action) {
         case "PUSH":
-          url &&
-            newPageStack.push(
-              getPage({ route: url, pageComponent: component, direction }),
-            );
-          currentPosition.current = currentPosition.current + 1;
+          if (url) {
+            const page = getPage({
+              route: url,
+              pageComponent: component,
+              direction,
+            });
+            dispatch(actions.addPageStack({ renderKey: "", page }));
+            currentPosition.current = currentPosition.current + 1;
+          }
           break;
         case "REPLACE":
           // TODO: page3에서 index 페이지로 replace 요청하는데, page2로 이동한다. 이유를 찾아보자.
           // replace에도 페이지 전환 애니메이션이 필요한지 모르겠다.
           // 만약 필요하다면, push하고 페이지 전환이 완료된 후 이전 페이지를 제거해야한다.
           if (url) {
-            const newPage = getPage({
+            const page = getPage({
               route: url,
               pageComponent: component,
               isReplace: true,
             });
-            newPageStack[newPageStack.length - 1] = newPage;
+            dispatch(actions.changePageStack({ renderKey: "", page }));
           }
           break;
         default:
           break;
       }
-      setPageStack(newPageStack);
-      pageStackInMemory.current = newPageStack;
       pageTransition.current = undefined;
     }
   }, [component]);
@@ -167,5 +171,9 @@ export default function PageStack({
     }
   };
 
-  return <TransitionGroup>{pageStack}</TransitionGroup>;
+  const pages = pageStack
+    .filter((_, index) => index <= currentPosition.current)
+    .map(item => item.page);
+
+  return <TransitionGroup>{pages}</TransitionGroup>;
 }

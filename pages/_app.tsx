@@ -2,12 +2,16 @@ import App from "next/app";
 import "../src/style.css";
 import PageStack from "../src/PageStack";
 import { processBeforePopState } from "../src/Router";
-import { IPageAppContext } from "../src/type";
+import { IPageAppContext, KStore } from "../src/type";
+import { Provider } from "react-redux";
+import { initStore } from "../src/store";
+import withRedux from "next-redux-wrapper";
 
 interface IProps {
   contextValue: IPageAppContext;
   pageProps: object;
   lang: string;
+  store: KStore;
 }
 
 class CustomApp extends App<IProps> {
@@ -30,16 +34,18 @@ class CustomApp extends App<IProps> {
   }
 
   render() {
-    const { Component, pageProps, router, contextValue } = this.props;
+    const { Component, pageProps, router, contextValue, store } = this.props;
     return (
-      <PageStack
-        router={router}
-        component={Component}
-        componentProps={pageProps}
-        contextValue={contextValue}
-      />
+      <Provider store={store}>
+        <PageStack
+          router={router}
+          component={Component}
+          componentProps={pageProps}
+          contextValue={contextValue}
+        />
+      </Provider>
     );
   }
 }
 
-export default CustomApp;
+export default withRedux(initStore)(CustomApp);
