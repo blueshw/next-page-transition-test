@@ -17,7 +17,7 @@ interface IProps {
 
 function Page(
   { pageComponent, componentProps, route, pageIndex }: IProps,
-  ref: Ref<IPageHandlerItem>
+  ref: Ref<IPageHandlerItem>,
 ) {
   const maskRef = useRef<HTMLDivElement>(null);
   const [activePosition, removePosition] = useTypedSelector(state => [
@@ -61,13 +61,9 @@ function Page(
     pageIndex,
   }));
 
-  if (pageIndex !== activePosition && pageIndex !== removePosition) {
-    return null;
-  }
-
   const maskClass = pageIndex < removePosition ? "mask-back" : "mask";
-
   const Component = pageComponent;
+
   return (
     <>
       <Component {...componentProps} key={route} />

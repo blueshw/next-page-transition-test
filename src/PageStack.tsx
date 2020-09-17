@@ -12,7 +12,7 @@ interface IProps {
   component: NextComponent;
   componentProps: any;
   router: Router;
-  contextValue: IPageAppContext; // type.ts로 이도
+  contextValue: IPageAppContext;
 }
 
 export default function PageStack({
@@ -26,17 +26,17 @@ export default function PageStack({
     pageStack,
     pageHandlerStack,
     activePosition,
+    removePosition,
   ] = useTypedSelector(state => [
     state.stack,
     state.handlerStack,
     state.activePosition,
+    state.removePosition,
   ]);
-
-  // 각 Page의 페이지 전환 핸들러(ex. componentDidHide)를 담아두기 위한 변수
-  // const pageHandlerStackRef = useRef<IPageHanderRef[]>([]);
-  // 페이지 전환 정보 (action, url, direction)
+  // routing에 따른 페이지 전환 정보 (action, url, direction)
   const pageTransition = useRef<IRouterInfo>();
-  // 현재 추가하려는 페이지 handler
+  // 현재 추가하려는 페이지의 handler,
+  // TODO: 이름 변경하자. getPageName, pageIndex가 항목에 추가되었기 때문에 handler는 아님
   const pageHandler = useRef<IPageHandlerItem>(null);
 
   // 최초 page 추가
@@ -48,9 +48,8 @@ export default function PageStack({
   }, []);
 
   useEffect(() => {
+    // TODO: type
     const handleHistoryChange = (e: any) => {
-      // TODO: type
-      // POP을 여기서 하는 이유는 history.back이 호출되었을 때, component는 바뀌지 않기 때문에 기다릴 필요가 없다.
       if (e.detail.action === RouteAction.Back) {
         dispatch(actions.changeActivePosition({ isForward: false }));
       } else if (e.detail.action === RouteAction.BrowserForward) {
@@ -170,8 +169,9 @@ export default function PageStack({
   };
 
   // TODO: 렌더링할때마다 계산하지 않도록 처리하자
+  // TODO: removePosition일때도 pages에 포함하도록 수정해야함 (지금은 문제가 있음)
   const pages = pageStack
-    .filter((_, index) => index <= activePosition)
+    .filter((_, index) => index === activePosition)
     .map(item => item.page);
 
   return <TransitionGroup>{pages}</TransitionGroup>;

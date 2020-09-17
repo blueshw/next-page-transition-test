@@ -45,6 +45,7 @@ export const actions = {
     type: ActionType.ChangePage,
     payload: { item },
   }),
+  // 임시로 사용하지 않음
   // removePage: () => ({
   //   type: ActionType.RemovePage,
   // }),
@@ -69,11 +70,11 @@ interface ITypedAction<T extends string, P> {
 
 function reducer(
   state: IReduxState = INITIAL_STATE,
-  action: ITypedAction<string, any> // TODO: type
+  action: ITypedAction<string, any>, // TODO: type
 ) {
   switch (action.type) {
     case ActionType.AddPage:
-      // activeStack 이후의 page는 잘라낸다.
+      // activeStack 이후의 page는 잘라낸다. router.push가 호출되면, 현재 페이지부터 새로운 history가 쌓이기 때문.
       const newStack = state.stack.slice(0, state.activePosition + 1);
       return {
         ...state,
@@ -114,10 +115,10 @@ function reducer(
         removePosition: position,
       };
     case ActionType.AddPageHandler:
-      // activeStack 이후의 page는 잘라낸다.
+      // AddPage action과 마찬가지로 activeStack 이후의 page는 잘라낸다.
       const newHandlerStack = state.handlerStack.slice(
         0,
-        state.removePosition + 1
+        state.removePosition + 1,
       );
       return {
         ...state,
